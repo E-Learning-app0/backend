@@ -11,6 +11,7 @@ class Utilisateur(Base):
     email = Column(String(100), unique=True, nullable=False)
     mot_de_passe = Column(Text, nullable=True)
     statut_compte = Column(String(50), default="actif")
+    is_verified = Column(Boolean, default=False, nullable=False)
 
     # ✅ Many-to-Many
     fournisseurs = relationship(
