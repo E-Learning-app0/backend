@@ -52,10 +52,10 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     # Enregistre-le dans une table `email_verification` (à créer)
     await save_verification_token(db, user_id=new_user.id, token=verification_token)
 
-    verification_link = f"http://localhost:8000/api/v1/verify-email?token={verification_token}"
+    #verification_link = f"http://localhost:8000/api/v1/verify-email?token={verification_token}"
+    FRONTEND_URL = "https://frontend-five-pi-35.vercel.app"
 
-    print(verification_link)
-    print(new_user.email)
+    verification_link = f"{FRONTEND_URL}/verify-email?token={verification_token}"
     await send_verification_email(new_user.email, verification_link)
 
     await log_action(

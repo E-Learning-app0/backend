@@ -30,7 +30,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.rollback()
             raise
 
-# Optional: function to create DB tables at startup
 async def init_db():
     async with engine.begin() as conn:
         try:
