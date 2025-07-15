@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordBearer
 from app.schemas.user import UserCreate, UserLogin, UserRead, OAuthData
-from app.services.auth import hash_password, verify_password, create_access_token
+from app.services.auth import hash_password, verify_password, create_access_token,decode_access_token
 from app.crud.user import get_user_by_email, create_user, get_or_create_fournisseur,get_user_by_id
 from db.session import get_db
 from google.oauth2 import id_token
@@ -16,7 +17,37 @@ from app.crud.verification import  get_verification_by_token, save_verification_
 import uuid
 from app.services.email import send_verification_email
 
+
 router = APIRouter()
+
+
+
+router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+@router.get("/users/me")
+async def read_users_me(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    payload = decode_access_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    user_id = payload["sub"]
+    user = await get_user_by_id(db, user_id)
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "is_verified": user.is_verified,
+        "full_name": user.nom_utilisateur,  # or .full_name if you renamed
+        "roles": [r.nom for r in user.roles]
+    }
+
+
+
+
 @router.get("/verify-email")
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     verification = await get_verification_by_token(db, token)
