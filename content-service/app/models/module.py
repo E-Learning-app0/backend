@@ -22,4 +22,6 @@ class Module(Base):
     about_fr = Column(Text, nullable=True)               # texte about en français
 
     lessons = relationship("Lesson", back_populates="module")
+    
+    user_progresses = relationship("UserProgress", back_populates="module",cascade="all, delete-orphan")
     module_teachers = relationship("ModuleTeacher", back_populates="module")

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.db.session import get_db
 from app.schemas.module import ModuleRead, ModuleCreate, ModuleUpdate,ModuleReadCustom
-from app.crud.module import get_module, get_modules, create_module, update_module, delete_module,get_full,get_full_by_moduleid
+from app.crud.module import get_modules, create_module, update_module, delete_module,get_full,get_full_by_moduleid
 from app.dependencies.roles import require_any_role
 from app.models import Module  # Assurez-vous que le modèle Module est importé correctement
 

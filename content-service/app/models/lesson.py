@@ -14,7 +14,6 @@ class Lesson(Base):
     title = Column(String(255), nullable=False)
     title_fr = Column(String(255), nullable=True)
     content = Column(Text, nullable=True)
-    lessontype = Column(String(50), nullable=True)
     video = Column(String, nullable=True)  # <- required
     pdf = Column(String, nullable=True) 
     orderindex = Column(Integer, nullable=True)

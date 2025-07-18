@@ -9,7 +9,6 @@ class LessonBase(BaseModel):
     title: str
     content: Optional[str] = None
     title_fr: Optional[str] = None
-    lessontype: Optional[str] = None
     resourceurl: Optional[str] = None
     orderindex: Optional[int] = None
     completed: Optional[bool] = False
@@ -33,7 +32,6 @@ class LessonRead1(BaseModel):
     title: str
     content: Optional[str]
     title_fr: Optional[str]
-    lessontype: Optional[str]
     resourceurl: Optional[str]
     orderindex: Optional[int]
     completed: bool
