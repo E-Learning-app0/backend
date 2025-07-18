@@ -1,13 +1,17 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, computed_field, ConfigDict
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+from app.schemas.lesson import LessonRead1, LessonReadSimple
 
 class ModuleBase(BaseModel):
     title: str
-    code: str
+    name_fr: Optional[str] = None
     description: Optional[str] = None
-    semester: str
+    description_fr: Optional[str] = None
+    about_en: Optional[str] = None
+    about_fr: Optional[str] = None
+    image: Optional[str] = None
 
 class ModuleCreate(ModuleBase):
     pass
@@ -18,9 +22,47 @@ class ModuleUpdate(BaseModel):
     description: Optional[str] = None
     semester: Optional[str] = None
 
-class ModuleRead(ModuleBase):
+class ModuleRead(BaseModel):
     id: UUID
     created_at: datetime
+    # other fields...
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)  # Replaces orm_mode=True in Pydantic v2
+
+class ModuleReadWithLessons(BaseModel):
+    id: UUID
+    title: str
+    name_fr: Optional[str] = None
+    description: Optional[str] = None
+    description_fr: Optional[str] = None
+    about_en: Optional[str] = None
+    about_fr: Optional[str] = None
+    image: Optional[str] = None
+    created_at: datetime
+    lessons: List[LessonRead1] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModuleReadCustom(BaseModel):
+    id: UUID
+    title: str  # Keep original field name from database
+    image: Optional[str] = None
+    name_fr: Optional[str] = None
+    description: Optional[str] = None
+    description_fr: Optional[str] = None
+    about_en: Optional[str] = None
+    about_fr: Optional[str] = None
+    lessons: List[LessonReadSimple] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def name(self) -> str:  # Computed alias for title
+        return self.title
+
+    @computed_field
+    @property
+    def about(self) -> dict:
+        return {"en": self.about_en or "", "fr": self.about_fr or ""}

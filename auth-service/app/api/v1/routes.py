@@ -101,6 +101,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login")
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(db, credentials.email)
+
     if not user or not verify_password(credentials.mot_de_passe, user.mot_de_passe):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 

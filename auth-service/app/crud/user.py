@@ -4,13 +4,15 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.utilisateur import Utilisateur
 from app.schemas.user import UserCreate
-
+from sqlalchemy.orm import selectinload
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[Utilisateur]:
-    result = await db.execute(select(Utilisateur).filter(Utilisateur.email == email))
+    result = await db.execute(select(Utilisateur).where(Utilisateur.email == email))
     return result.scalars().first()
 
-async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[Utilisateur]:
-    result = await db.execute(select(Utilisateur).filter(Utilisateur.id == user_id))
+async def get_user_by_id(db: AsyncSession, user_id: str) -> Optional[Utilisateur]:
+    user_id_int = int(user_id)
+    query = select(Utilisateur).options(selectinload(Utilisateur.roles)).filter(Utilisateur.id == user_id_int)
+    result = await db.execute(query)
     return result.scalars().first()
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Utilisateur]:

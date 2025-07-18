@@ -14,6 +14,12 @@ class Module(Base):
     description = Column(Text, nullable=True)
     semester = Column(String(10), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+# Nouveaux champs
+    image = Column(String(255), nullable=True)          # chemin ou url image
+    name_fr = Column(String(255), nullable=True)        # nom français
+    description_fr = Column(Text, nullable=True)        # description française
+    about_en = Column(Text, nullable=True)               # texte about en anglais
+    about_fr = Column(Text, nullable=True)               # texte about en français
 
     lessons = relationship("Lesson", back_populates="module")
     module_teachers = relationship("ModuleTeacher", back_populates="module")

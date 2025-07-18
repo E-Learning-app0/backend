@@ -4,7 +4,7 @@ import requests
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  # le token est obtenu via AuthService
 
-AUTH_SERVICE_URL = "http://auth-service:8000/users/me"
+AUTH_SERVICE_URL = "http://localhost:8000/api/v1/users/me"
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     headers = {"Authorization": f"Bearer {token}"}
