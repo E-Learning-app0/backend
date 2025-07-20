@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from typing import List
 from app.db.session import get_db
-from app.schemas.lesson import LessonRead, LessonCreate, LessonUpdate
-from app.crud.lesson import get_lesson, create_lesson, update_lesson, delete_lesson,get_lessons_by_module
+from app.schemas.lesson import LessonRead, LessonCreate, LessonUpdate,LessonWithProgress
+from app.crud.lesson import get_lesson, create_lesson, update_lesson, delete_lesson,get_lessons_by_module,get_lesson_with_progress
 from app.dependencies.roles import require_any_role
 
 router = APIRouter(prefix="/lessons", tags=["Lessons"])
@@ -57,3 +57,16 @@ async def delete_existing_lesson(lesson_id: UUID, db: AsyncSession = Depends(get
         raise HTTPException(status_code=404, detail="Lesson not found")
     await delete_lesson(db, lesson_id)
     return
+
+
+@router.get("/with-progress/{lesson_id}", response_model=LessonWithProgress)
+async def get_lesson_progress(
+    lesson_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_any_role("admin", "teacher", "student"))
+):
+    try:
+        return await get_lesson_with_progress(db, lesson_id, user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    

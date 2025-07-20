@@ -15,7 +15,7 @@ from app.schemas.user_progress import (
     UserProgressWithModule
 )
 from app.api.deps import get_current_user
-from app.crud.crud_user_progress import get_user_progress_with_module, get_user_progress_by_semester, unlock_module
+from app.crud.crud_user_progress import get_user_progress_with_module, get_user_progress_by_semester, unlock_module,get_user_progress
 
 router = APIRouter(prefix="/userprogress", tags=["Users_Progress"])
 
@@ -68,6 +68,19 @@ def create_user_progress(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 @router.get("/test/{module_id}")
 def test_uuid_validation(
     module_id: UUID = Path(...)
@@ -77,7 +90,7 @@ def test_uuid_validation(
 
 # app/routers/user_progress.py
 @router.get("/{module_id}", response_model=UserProgressWithModule)
-async def get_user_progress(
+async def get_user_progress_router(
     module_id: UUID,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -162,14 +175,14 @@ async def get_semester_progress(
     )
     return progress
 
+
 @router.post("/{module_id}/complete", response_model=UserProgress)
-def complete_module(
+async def complete_module(
     module_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-
-    progress = get_user_progress(
+    progress = await get_user_progress(
         db,
         user_id=current_user.id,
         module_id=module_id
@@ -183,7 +196,7 @@ def complete_module(
     progress.is_module_completed = True
     progress.completed_at = datetime.utcnow()
     progress.last_accessed = datetime.utcnow()
-    
+
     try:
         db.commit()
         db.refresh(progress)
@@ -194,3 +207,20 @@ def complete_module(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+
+from app.services.progress_utils import try_unlock_next_semester_async
+
+@router.post("/unlock-next/{current_semester}")
+async def unlock_next_semester(
+    current_semester: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    result = await try_unlock_next_semester_async(
+        db=db,
+        user_id=current_user.id,
+        current_semester=current_semester
+    )
+    return result

@@ -1,8 +1,8 @@
 from pydantic import BaseModel, computed_field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List,Dict
 from uuid import UUID
 from datetime import datetime
-from app.schemas.lesson import LessonRead1, LessonReadSimple
+from app.schemas.lesson import LessonRead1, LessonReadSimple,LessonWithProgress
 
 class ModuleBase(BaseModel):
     title: str
@@ -66,3 +66,10 @@ class ModuleReadCustom(BaseModel):
     @property
     def about(self) -> dict:
         return {"en": self.about_en or "", "fr": self.about_fr or ""}
+    
+
+class ModuleDetailedResponse(BaseModel):
+    id: UUID
+    title: str
+    lessons: List[LessonWithProgress]
+    about: Optional[Dict[str, str]]

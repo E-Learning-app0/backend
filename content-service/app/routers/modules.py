@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 
 from app.db.session import get_db
-from app.schemas.module import ModuleRead, ModuleCreate, ModuleUpdate,ModuleReadCustom
+from app.schemas.module import ModuleRead, ModuleCreate, ModuleUpdate,ModuleReadCustom,ModuleDetailedResponse
 from app.crud.module import get_modules, create_module, update_module, delete_module,get_full,get_full_by_moduleid
 from app.dependencies.roles import require_any_role
 from app.models import Module  # Assurez-vous que le modèle Module est importé correctement
@@ -87,4 +87,16 @@ async def read_module(
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
     return module
+"""
+"""
+@router.get("/detailed/{module_id}", response_model=ModuleDetailedResponse)
+async def get_detailed_module(
+    module_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_any_role("admin", "teacher", "student"))
+):
+    detailed_data = await get_module_with_lessons_progress(db, module_id, user_id=user.id)
+    if not detailed_data:
+        raise HTTPException(status_code=404, detail="Module not found")
+    return detailed_data
 """

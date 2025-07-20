@@ -69,3 +69,9 @@ class LessonReadSimple(BaseModel):
     completed: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LessonWithProgress(BaseModel):
+    id: UUID
+    title: str
+    completed: bool

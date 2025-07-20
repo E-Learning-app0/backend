@@ -21,3 +21,5 @@ class Lesson(Base):
     completed = Column(Boolean, default=False, nullable=False)
     module = relationship("Module", back_populates="lessons")
     files = relationship("LessonFile", back_populates="lesson")
+    progress = relationship("UserLessonProgress", back_populates="lesson")
+

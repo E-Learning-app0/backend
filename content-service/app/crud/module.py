@@ -57,6 +57,7 @@ async def get_full(
     result = await db.execute(stmt)
     modules = result.scalars().unique().all()
     return modules
+
 async def get_full_by_moduleid(db: AsyncSession, moduleid: UUID):
     stmt = (
         select(Module)

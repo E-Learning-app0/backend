@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update, delete
 from app.models.lesson import Lesson
-from app.schemas.lesson import LessonCreate, LessonUpdate
+from app.models.user_lesson_progress import UserLessonProgress
+from app.schemas.lesson import LessonCreate, LessonUpdate,LessonWithProgress
 from uuid import UUID
 
 async def get_lesson(db: AsyncSession, lesson_id: UUID):
@@ -37,3 +38,22 @@ async def get_lessons_by_module(db: AsyncSession, module_id: UUID) -> List[Lesso
         select(Lesson).where(Lesson.moduleid == module_id).order_by(Lesson.orderindex)
     )
     return result.scalars().all()
+
+
+
+
+async def get_lesson_with_progress(
+    db: AsyncSession, lesson_id: UUID, user_id: UUID
+) -> LessonWithProgress:
+    stmt = (
+        select(Lesson.id, Lesson.title, UserLessonProgress.completed)
+        .join(UserLessonProgress, Lesson.id == UserLessonProgress.lesson_id)
+        .where(Lesson.id == lesson_id, UserLessonProgress.user_id == user_id)
+    )
+    result = await db.execute(stmt)
+    row = result.fetchone()
+
+    if not row:
+        raise ValueError("Lesson not found or no progress for user")
+
+    return LessonWithProgress(id=row.id, title=row.title, completed=row.completed)
