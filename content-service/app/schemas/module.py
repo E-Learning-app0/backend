@@ -73,3 +73,13 @@ class ModuleDetailedResponse(BaseModel):
     title: str
     lessons: List[LessonWithProgress]
     about: Optional[Dict[str, str]]
+
+class ModuleWithUnlockStatus(BaseModel):
+    id: UUID
+    title: str
+    semester: str
+    order: int
+    is_unlocked: bool
+
+    class Config:
+        orm_mode = True

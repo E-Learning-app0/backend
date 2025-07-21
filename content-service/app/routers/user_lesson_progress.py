@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List
 from app.db.session import get_db
 from app.schemas.user_lesson_progress import UserLessonProgressCreate, UserLessonProgressUpdate, UserLessonProgressRead
-from app.crud.user_lesson_progress import create_user_lesson_progress, get_user_lesson_progress, update_user_lesson_progress,get_user_progress_by_user,create_user_lesson_progress
+from app.crud.user_lesson_progress import create_user_lesson_progress, get_user_lesson_progress, update_user_lesson_progress,get_user_progress_by_user,create_user_lesson_progress,calculate_module_progress
 from app.api.deps import get_current_user
 from app.dependencies.roles import require_any_role
 
@@ -72,3 +72,16 @@ async def get_user_progress(
     Returns records from user_lesson_progress table
     """
     return await get_user_progress_by_user(db, current_user.id)
+
+from app.schemas.module_progress import ModuleProgressRead
+
+@router.get("/modules-progress", response_model=List[ModuleProgressRead])
+async def get_modules_progress(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    user=Depends(require_any_role("admin", "teacher", "student"))
+):
+    """
+    Get % progress for each module (based on lesson completion)
+    """
+    return await calculate_module_progress(db, current_user.id)

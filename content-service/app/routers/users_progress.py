@@ -12,12 +12,25 @@ from app.schemas.user_progress import (
     UserProgressCreate,
     UserProgressUpdate,
     UserProgress,
-    UserProgressWithModule
+    UserProgressWithModule,
+    ModuleWithUnlockStatus
 )
+from typing import List
 from app.api.deps import get_current_user
-from app.crud.crud_user_progress import get_user_progress_with_module, get_user_progress_by_semester, unlock_module,get_user_progress
+from app.crud.crud_user_progress import get_user_progress_with_module, get_user_progress_by_semester, unlock_module,get_user_progress,get_modules_with_unlock_status
 
 router = APIRouter(prefix="/userprogress", tags=["Users_Progress"])
+
+
+
+@router.get("/modulesProgress", response_model=List[ModuleWithUnlockStatus])
+async def list_modules_with_unlock_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.id
+    return await get_modules_with_unlock_status(db, user_id)
+
 
 @router.post("/", response_model=UserProgress, status_code=status.HTTP_201_CREATED)
 def create_user_progress(
@@ -65,18 +78,6 @@ def create_user_progress(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -224,3 +225,4 @@ async def unlock_next_semester(
         current_semester=current_semester
     )
     return result
+

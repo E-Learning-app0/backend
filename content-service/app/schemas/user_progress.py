@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 import uuid
 from .module import ModuleRead
-
+from uuid import UUID
 
 class UserProgressBase(BaseModel):
     external_user_id: int
@@ -31,3 +31,12 @@ class UserProgressWithModule(UserProgress):
     module: ModuleRead  # Nested module data
     
     model_config = ConfigDict(from_attributes=True)
+
+class ModuleWithUnlockStatus(BaseModel):
+    id: UUID
+    title: str
+    semester: str
+    is_module_unlocked: bool = False
+
+    class Config:
+        orm_mode = True

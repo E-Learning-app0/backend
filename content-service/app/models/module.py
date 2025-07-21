@@ -1,5 +1,5 @@
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, String, DateTime,Text
+from sqlalchemy import Column, String, DateTime,Text,Integer
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from app.db.session import Base
@@ -20,6 +20,7 @@ class Module(Base):
     description_fr = Column(Text, nullable=True)        # description française
     about_en = Column(Text, nullable=True)               # texte about en anglais
     about_fr = Column(Text, nullable=True)               # texte about en français
+    order = Column(Integer, nullable=False)
 
     lessons = relationship("Lesson", back_populates="module")
     

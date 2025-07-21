@@ -64,3 +64,52 @@ async def create_user_lesson_progress(db: AsyncSession, user_id: UUID, lesson_id
     await db.commit()
     await db.refresh(new_progress)
     return new_progress
+
+
+
+from app.models.module import Module
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from app.models.user_progress import UserProgress
+
+async def calculate_module_progress(db: AsyncSession, user_id: UUID):
+    # Load all modules and their lessons
+    result = await db.execute(
+        select(Module).options(selectinload(Module.lessons))
+    )
+    modules = result.scalars().all()
+
+    # Load all completed lessons for user
+    result = await db.execute(
+        select(UserLessonProgress).filter(UserLessonProgress.user_id == user_id)
+    )
+    progress_entries = result.scalars().all()
+    completed_lesson_ids = {p.lesson_id for p in progress_entries if p.completed}
+
+    # Load module unlock info from UserProgress table
+    result = await db.execute(
+        select(UserProgress)
+        .filter(UserProgress.external_user_id == user_id)
+    )
+    progress_per_module = result.scalars().all()
+    unlock_status_map = {p.module_id: p.is_module_unlocked for p in progress_per_module}
+
+    # Final result
+    module_progress = []
+    for module in modules:
+        total = len(module.lessons)
+        completed = sum(1 for l in module.lessons if l.id in completed_lesson_ids)
+        percent = round((completed / total) * 100) if total else 0
+        is_unlocked = unlock_status_map.get(module.id, False)
+
+        module_progress.append({
+            "module_id": module.id,
+            "module_title": module.title,
+            "completed_lessons": completed,
+            "total_lessons": total,
+            "percent_complete": percent,
+            "is_module_unlocked": is_unlocked
+        })
+
+    return module_progress
