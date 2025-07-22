@@ -12,10 +12,13 @@ class UserLessonProgressCreate(BaseModel):
 
 class UserLessonProgressUpdate(BaseModel):
     completed: bool
+    score: Optional[int] = None
 
 class UserLessonProgressRead(UserLessonProgressBase):
     completed: bool
     completed_at: Optional[datetime]
+    score: Optional[int] = None
+    video_watched: bool
 
     class Config:
         orm_mode = True

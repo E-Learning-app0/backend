@@ -14,5 +14,7 @@ class UserLessonProgress(Base):
     completed = Column(Boolean, default=False, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
+    score = Column(Integer, nullable=True)
+    video_watched = Column(Boolean, default=False, nullable=False)  # New column
     lesson = relationship("Lesson", back_populates="progress")
     

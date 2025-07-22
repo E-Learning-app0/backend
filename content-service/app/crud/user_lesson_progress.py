@@ -38,6 +38,9 @@ async def update_user_lesson_progress(
         return None
     progress.completed = data.completed
     progress.completed_at = datetime.utcnow() if data.completed else None
+    if data.score is not None:
+        progress.score = data.score
+    progress.video_watched = True
     await db.commit()
     await db.refresh(progress)
     return progress
