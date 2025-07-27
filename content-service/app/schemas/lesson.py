@@ -19,6 +19,14 @@ class LessonCreate(LessonBase):
 class LessonUpdate(LessonBase):
     pass
 
+class LessonOrderUpdate(BaseModel):
+    orderindex: int
+    
+    class Config:
+        schema_extra = {
+            "example": {"orderindex": 1}
+        }
+
 class LessonRead(LessonBase):
     id: UUID
     createdat: datetime
@@ -68,6 +76,7 @@ class LessonReadSimple(BaseModel):
     pdf: Optional[str]
     completed: bool
     quiz_id: Optional[str] = None
+    orderindex: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 

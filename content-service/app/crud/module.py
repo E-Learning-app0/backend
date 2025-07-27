@@ -56,16 +56,29 @@ async def get_full(
     )
     result = await db.execute(stmt)
     modules = result.scalars().unique().all()
+    
+    # Sort lessons by orderindex for each module
+    for module in modules:
+        if module.lessons:
+            module.lessons = sorted(module.lessons, key=lambda lesson: lesson.orderindex if lesson.orderindex is not None else 999999)
+    
     return modules
 
 async def get_full_by_moduleid(db: AsyncSession, moduleid: UUID):
     stmt = (
         select(Module)
         .where(Module.id == moduleid)
-        .options(selectinload(Module.lessons))  # Optional: eager load lessons
+        .options(selectinload(Module.lessons))  # Eager load lessons
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    modules = result.scalars().all()
+    
+    # Sort lessons by orderindex for each module
+    for module in modules:
+        if module.lessons:
+            module.lessons = sorted(module.lessons, key=lambda lesson: lesson.orderindex if lesson.orderindex is not None else 999999)
+    
+    return modules
 
 async def get_modules_with_lessons_and_files(db: AsyncSession, skip: int = 0, limit: int = 100):
     # 1. Récupérer modules + lessons + lessonfiles avec jointure
@@ -92,7 +105,11 @@ async def get_modules_with_lessons_and_files(db: AsyncSession, skip: int = 0, li
             "image": getattr(module, "image", None),
             "lessons": [],
         }
-        for lesson in module.lessons:
+        
+        # Sort lessons by orderindex before processing
+        sorted_lessons = sorted(module.lessons, key=lambda lesson: lesson.orderindex if lesson.orderindex is not None else 999999)
+        
+        for lesson in sorted_lessons:
             # Extraire video et pdf des fichiers associés
             video_url = None
             pdf_url = None
@@ -109,6 +126,7 @@ async def get_modules_with_lessons_and_files(db: AsyncSession, skip: int = 0, li
                 "completed": getattr(lesson, "completed", False),
                 "video": video_url,
                 "pdf": pdf_url,
+                "orderindex": lesson.orderindex,  # Include orderindex in response
             }
             module_dict["lessons"].append(lesson_dict)
 

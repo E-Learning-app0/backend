@@ -108,17 +108,16 @@ class QuizBackgroundService:
             return None
     
     async def get_lessons_without_quiz(self, db: AsyncSession):
-        """Get all lessons that have PDF content but no quiz_id"""
+        """Get all lessons that have PDF content (including those with existing quiz_id for regeneration)"""
         try:
             stmt = select(Lesson).where(
                 Lesson.pdf.isnot(None),
-                Lesson.pdf != '',
-                Lesson.quiz_id.is_(None)
+                Lesson.pdf != ''
             )
             result = await db.execute(stmt)
             return result.scalars().all()
         except Exception as e:
-            logger.error(f"Error getting lessons without quiz: {str(e)}")
+            logger.error(f"Error getting lessons with PDF: {str(e)}")
             return []
     
     async def update_lesson_quiz_id(self, db: AsyncSession, lesson_id, quiz_id: str):
@@ -137,28 +136,34 @@ class QuizBackgroundService:
         try:
             async for db in get_db():
                 try:
-                    # Get lessons without quiz
+                    # Get all lessons with PDFs (including those with existing quiz_ids)
                     lessons = await self.get_lessons_without_quiz(db)
-                    logger.info(f"📚 Found {len(lessons)} lessons to process for quiz generation")
-                    print(f"📚 Found {len(lessons)} lessons without quiz IDs")
+                    logger.info(f"📚 Found {len(lessons)} lessons with PDFs to process for quiz generation/regeneration")
+                    print(f"📚 Found {len(lessons)} lessons with PDFs (including existing quiz_ids)")
                     
                     if len(lessons) == 0:
-                        logger.info("✅ All lessons already have quiz IDs!")
-                        print("✅ All lessons already have quiz IDs!")
+                        logger.info("✅ No lessons with PDFs found!")
+                        print("✅ No lessons with PDFs found!")
                     
                     for lesson in lessons:
                         try:
-                            logger.info(f"Processing lesson {lesson.id}: {lesson.title}")
+                            existing_quiz_status = "🔄 UPDATING" if lesson.quiz_id else "🆕 CREATING"
+                            logger.info(f"Processing lesson {lesson.id}: {lesson.title} ({existing_quiz_status})")
+                            print(f"{existing_quiz_status} quiz for: {lesson.title}")
                             
                             # Generate quiz using microservice
                             quiz_id = await self.call_quiz_microservice(lesson.pdf)
                             
                             if quiz_id:
-                                # Update lesson with quiz_id
+                                # Update lesson with new quiz_id (overwrites existing if present)
                                 success = await self.update_lesson_quiz_id(db, lesson.id, quiz_id)
                                 if success:
-                                    logger.info(f"✅ Successfully updated lesson {lesson.id} with quiz_id: {quiz_id}")
-                                    print(f"✅ LESSON UPDATED: {lesson.title} -> Quiz ID: {quiz_id}")
+                                    if lesson.quiz_id:
+                                        logger.info(f"🔄 Successfully UPDATED lesson {lesson.id} with NEW quiz_id: {quiz_id} (replaced old: {lesson.quiz_id})")
+                                        print(f"🔄 UPDATED: {lesson.title} → NEW Quiz ID: {quiz_id}")
+                                    else:
+                                        logger.info(f"✅ Successfully CREATED quiz for lesson {lesson.id} with quiz_id: {quiz_id}")
+                                        print(f"✅ CREATED: {lesson.title} → Quiz ID: {quiz_id}")
                                 else:
                                     logger.error(f"❌ Failed to update lesson {lesson.id} in database")
                             else:

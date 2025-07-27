@@ -4,7 +4,7 @@ from uuid import UUID
 from typing import List
 from app.db.session import get_db
 from app.schemas.lesson import LessonRead, LessonCreate, LessonUpdate,LessonWithProgress
-from app.crud.lesson import get_lesson, create_lesson, update_lesson, delete_lesson,get_lessons_by_module,get_lesson_with_progress
+from app.crud.lesson import get_lesson, create_lesson, update_lesson, delete_lesson,get_lessons_by_module,get_lesson_with_progress, reorder_lessons_for_module, update_lesson_order
 from app.dependencies.roles import require_any_role
 
 router = APIRouter(prefix="/lessons", tags=["Lessons"])
@@ -69,4 +69,34 @@ async def get_lesson_progress(
         return await get_lesson_with_progress(db, lesson_id, user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    
+
+
+@router.post("/reorder-module/{module_id}")
+async def fix_lesson_order_for_module(
+    module_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_any_role("admin", "teacher"))
+):
+    """Fix orderindex for all lessons in a module by reassigning sequential numbers"""
+    try:
+        count = await reorder_lessons_for_module(db, module_id)
+        return {"message": f"Reordered {count} lessons in module", "module_id": module_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to reorder lessons: {str(e)}")
+
+
+@router.put("/{lesson_id}/order/{new_order}")
+async def change_lesson_order(
+    lesson_id: UUID,
+    new_order: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_any_role("admin", "teacher"))
+):
+    """Change a lesson's order position and adjust other lessons accordingly"""
+    try:
+        updated_lesson = await update_lesson_order(db, lesson_id, new_order)
+        if not updated_lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        return {"message": f"Lesson moved to position {new_order}", "lesson_id": lesson_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to update lesson order: {str(e)}")
