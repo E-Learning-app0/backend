@@ -19,6 +19,8 @@ class Lesson(Base):
     orderindex = Column(Integer, nullable=True)
     createdat = Column(DateTime, default=datetime.utcnow)
     completed = Column(Boolean, default=False, nullable=False)
+    quiz_id = Column(String, nullable=True)
+    
     module = relationship("Module", back_populates="lessons")
     files = relationship("LessonFile", back_populates="lesson")
     progress = relationship("UserLessonProgress", back_populates="lesson")

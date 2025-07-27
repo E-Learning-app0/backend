@@ -25,6 +25,24 @@ async def update_lesson(db: AsyncSession, lesson_id: UUID, lesson_update: Lesson
     updated = result.fetchone()
     return updated
 
+async def update_lesson_quiz_id(db: AsyncSession, lesson_id: UUID, quiz_id: str):
+    """Update only the quiz_id field of a lesson"""
+    stmt = update(Lesson).where(Lesson.id == lesson_id).values(quiz_id=quiz_id).returning(Lesson)
+    result = await db.execute(stmt)
+    await db.commit()
+    updated = result.fetchone()
+    return updated
+
+async def get_lessons_without_quiz(db: AsyncSession):
+    """Get all lessons that have PDF content but no quiz_id"""
+    stmt = select(Lesson).where(
+        Lesson.pdf.isnot(None),
+        Lesson.pdf != '',
+        Lesson.quiz_id.is_(None)
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
 async def delete_lesson(db: AsyncSession, lesson_id: UUID):
     stmt = delete(Lesson).where(Lesson.id == lesson_id)
     await db.execute(stmt)

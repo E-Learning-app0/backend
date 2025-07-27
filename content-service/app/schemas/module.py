@@ -53,8 +53,8 @@ class ModuleReadCustom(BaseModel):
     description_fr: Optional[str] = None
     about_en: Optional[str] = None
     about_fr: Optional[str] = None
+    
     lessons: List[LessonReadSimple] = []
-
     model_config = ConfigDict(from_attributes=True)
 
     @computed_field

@@ -67,7 +67,7 @@ class LessonReadSimple(BaseModel):
     video: Optional[str]
     pdf: Optional[str]
     completed: bool
-
+    quiz_id: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
