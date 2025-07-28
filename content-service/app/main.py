@@ -40,7 +40,22 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="E-Learning Content Service", 
+    description="Content management and quiz generation service",
+    version="1.0.0"
+)
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "content-service",
+        "version": "1.0.0",
+        "quiz_service_running": quiz_background_service.is_running
+    }
 
 origins = [
     "http://localhost:5173",  

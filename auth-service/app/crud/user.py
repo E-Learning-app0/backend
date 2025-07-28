@@ -6,8 +6,17 @@ from app.models.utilisateur import Utilisateur
 from app.schemas.user import UserCreate
 from sqlalchemy.orm import selectinload
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[Utilisateur]:
-    result = await db.execute(select(Utilisateur).where(Utilisateur.email == email))
-    return result.scalars().first()
+    query = select(Utilisateur).options(selectinload(Utilisateur.roles)).where(Utilisateur.email == email)
+    result = await db.execute(query)
+    user = result.scalars().first()
+    
+    # DEBUG: Print user roles after loading
+    if user:
+        print(f"DEBUG CRUD - User {user.id} loaded with {len(user.roles)} roles")
+        for role in user.roles:
+            print(f"DEBUG CRUD - Role: {role.id} - {role.nom}")
+    
+    return user
 
 async def get_user_by_id(db: AsyncSession, user_id: str) -> Optional[Utilisateur]:
     user_id_int = int(user_id)

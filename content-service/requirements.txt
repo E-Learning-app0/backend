@@ -4,5 +4,6 @@ SQLAlchemy>=2.0
 asyncpg
 pydantic
 python-dotenv
-httpx  # Optional, for HTTP calls (e.g., to Auth Service)
+httpx  # For async HTTP calls to Auth Service
 python-vimeo  # For Vimeo API integration
+PyJWT  # For JWT token validation (same as auth service)

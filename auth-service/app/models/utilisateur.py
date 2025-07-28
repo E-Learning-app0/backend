@@ -24,7 +24,8 @@ class Utilisateur(Base):
     roles = relationship(
         "Role",
         secondary=utilisateur_role,
-        back_populates="utilisateurs"
+        back_populates="utilisateurs",
+        lazy="selectin"
     )
 
     # ✅ One-to-Many
