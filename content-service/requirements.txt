@@ -5,3 +5,4 @@ asyncpg
 pydantic
 python-dotenv
 httpx  # Optional, for HTTP calls (e.g., to Auth Service)
+python-vimeo  # For Vimeo API integration

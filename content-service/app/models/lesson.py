@@ -14,12 +14,14 @@ class Lesson(Base):
     title = Column(String(255), nullable=False)
     title_fr = Column(String(255), nullable=True)
     content = Column(Text, nullable=True)
-    video = Column(String, nullable=True)  # <- required
+    video = Column(String, nullable=True)  # Video URL (can be Vimeo, YouTube, etc.)
     pdf = Column(String, nullable=True) 
     orderindex = Column(Integer, nullable=True)
     createdat = Column(DateTime, default=datetime.utcnow)
     completed = Column(Boolean, default=False, nullable=False)
     quiz_id = Column(String, nullable=True)
+    vimeo_id = Column(String, nullable=True)  # Store Vimeo video ID separately
+    video_type = Column(String, nullable=True)  # Type: 'vimeo', 'youtube', 'local', etc.
     
     module = relationship("Module", back_populates="lessons")
     files = relationship("LessonFile", back_populates="lesson")

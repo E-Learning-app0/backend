@@ -12,6 +12,9 @@ class LessonBase(BaseModel):
     resourceurl: Optional[str] = None
     orderindex: Optional[int] = None
     completed: Optional[bool] = False
+    video: Optional[str] = None
+    vimeo_id: Optional[str] = None
+    video_type: Optional[str] = None
 
 class LessonCreate(LessonBase):
     pass
@@ -46,6 +49,8 @@ class LessonRead1(BaseModel):
     video: Optional[str]
     pdf: Optional[str]
     createdat: datetime
+    vimeo_id: Optional[str] = None
+    video_type: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -77,6 +82,8 @@ class LessonReadSimple(BaseModel):
     completed: bool
     quiz_id: Optional[str] = None
     orderindex: Optional[int] = None
+    vimeo_id: Optional[str] = None
+    video_type: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
