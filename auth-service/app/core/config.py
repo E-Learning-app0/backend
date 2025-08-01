@@ -26,8 +26,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     BACKEND_URL: str = "http://localhost:8000"
     
-    # Optional service discovery
-    CONTENT_SERVICE_URL: Optional[str] = "http://localhost:8080"
+    # Service discovery - internal service URLs
+    CONTENT_SERVICE_URL: Optional[str] = "http://localhost:8002"
+    PAYMENT_SERVICE_URL: Optional[str] = "http://localhost:8005"
 
     class Config:
         env_file = ".env"

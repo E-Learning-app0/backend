@@ -9,7 +9,6 @@ from app.routers import modules  # import your lessons router
 from app.routers import quiz  # import quiz router
 from app.routers import vimeo  # import vimeo router
 from app.routers import admin  # import admin router
-from fastapi.middleware.cors import CORSMiddleware
 from app.routers import users_progress, user_lesson_progress
 from app.services.quiz_background_service import quiz_background_service
 
@@ -56,19 +55,6 @@ async def health_check():
         "version": "1.0.0",
         "quiz_service_running": quiz_background_service.is_running
     }
-
-origins = [
-    "http://localhost:5173",  
-    "https://frontend-five-pi-35.vercel.app",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,            
-    allow_credentials=True,
-    allow_methods=["*"],              
-    allow_headers=["*"],              
-)
 
 app.include_router(lessons.router)
 app.include_router(modules.router)

@@ -4,11 +4,8 @@
 
 - Python 3.8+
 - PostgreSQL database
-- Node.js (for frontend)
+- react (for frontend)
 
-## 🔧 Setup Instructions
-
-### 1. Database Setup
 
 ```sql
 -- Create databases

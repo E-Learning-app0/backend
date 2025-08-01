@@ -16,5 +16,5 @@ echo 📦 Installing dependencies...
 pip install -r requirements.txt
 
 REM Start the server
-echo 🌟 Starting Content Service on http://localhost:8080
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+echo 🌟 Starting Content Service on http://localhost:8002
+uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload

@@ -11,8 +11,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # Should be same as auth service
 ALGORITHM = "HS256"
 
-# Get auth service URL from environment (fallback method)
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8000") + "/api/v1/users/me"
+# Get auth service URL from environment - updated to correct auth service port
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8001") + "/api/v1/users/me"
 
 def decode_jwt_locally(token: str) -> Optional[dict]:
     """

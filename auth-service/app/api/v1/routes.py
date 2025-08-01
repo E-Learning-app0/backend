@@ -50,11 +50,12 @@ async def get_token_info(current_user: Dict[str, Any] = Depends(get_current_user
         "token_format": current_user.get("token_format", "unknown")
     }
 
-@router.post("/token/refresh")
+@router.post("/refresh")
 async def refresh_token(current_user: Dict[str, Any] = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """
     Refresh token and upgrade to new format if needed.
-    Use this endpoint if you have an old token format.
+    Critical endpoint to prevent users from being logged out.
+    Accepts refresh tokens via Authorization Bearer header.
     """
     # If it's already a new format token, just create a new one with fresh expiry
     if current_user.get("token_format") == "new":
@@ -94,6 +95,15 @@ async def refresh_token(current_user: Dict[str, Any] = Depends(get_current_user)
         "token_type": "bearer",
         "message": "Token refreshed and upgraded to new format with email and roles"
     }
+
+@router.post("/token/refresh")
+async def refresh_token_legacy(current_user: Dict[str, Any] = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """
+    Legacy refresh token endpoint - kept for backward compatibility.
+    Use /refresh instead.
+    """
+    # Delegate to the main refresh endpoint
+    return await refresh_token(current_user, db)
 
 # Example protected endpoints with role requirements
 @router.get("/admin-only")
