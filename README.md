@@ -6,7 +6,6 @@
 - PostgreSQL database
 - react (for frontend)
 
-
 ```sql
 -- Create databases
 CREATE DATABASE elearning_auth;
@@ -119,11 +118,3 @@ QUIZ_MICROSERVICE_URL=http://localhost:8002/upload-quiz
 
 - Auth Service: `http://localhost:8000/docs`
 - Content Service: `http://localhost:8080/docs`
-
-## 📝 Next Steps
-
-1. Set up your frontend to connect to these services
-2. Configure email settings for user verification
-3. Set up Vimeo integration (optional)
-4. Implement payment service integration
-5. Set up production deployment with Docker

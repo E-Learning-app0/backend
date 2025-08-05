@@ -103,8 +103,15 @@ class QuizBackgroundService:
                     print(f"❌ Quiz microservice error - Status: {quiz_response.status_code}")
                     return None
         except Exception as e:
-            logger.error(f"Error sending PDF to quiz service: {str(e)}")
-            print(f"❌ Error sending PDF to quiz service: {str(e)}")
+            logger.error(f"Error sending PDF to quiz service: {type(e).__name__}: {str(e)}")
+            print(f"❌ Error sending PDF to quiz service: {type(e).__name__}: {str(e)}")
+            # Add more detailed error information
+            if hasattr(e, 'response'):
+                logger.error(f"HTTP Response: {e.response.status_code if hasattr(e.response, 'status_code') else 'Unknown'}")
+                print(f"📊 HTTP Response code: {e.response.status_code if hasattr(e.response, 'status_code') else 'Unknown'}")
+            if hasattr(e, '__traceback__'):
+                import traceback
+                logger.error(f"Full traceback: {traceback.format_exc()}")
             return None
     
     async def get_lessons_without_quiz(self, db: AsyncSession):
