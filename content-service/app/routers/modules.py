@@ -70,6 +70,7 @@ async def read_full_by_moduleid(
     moduleid: UUID = Path(..., description="ID of the module"),
     db: AsyncSession = Depends(get_db)
 ):
+    
     modules = await get_full_by_moduleid(db, moduleid)
     return [ModuleReadCustom.model_validate(module) for module in modules]
 

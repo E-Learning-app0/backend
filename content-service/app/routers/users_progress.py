@@ -89,21 +89,23 @@ def test_uuid_validation(
     print(f"Successfully received UUID: {module_id}")
     return {"module_id": str(module_id), "type": str(type(module_id))}
 
-# app/routers/user_progress.py
 @router.get("/{module_id}", response_model=UserProgressWithModule)
 async def get_user_progress_router(
     module_id: UUID,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    print(f"Fetching progress for user_id={current_user.id}, module_id={module_id}")
     progress = await get_user_progress_with_module(
         db,
         user_id=current_user.id,
         module_id=module_id
     )
+    print(f"Progress found: {progress}")
     if not progress:
         raise HTTPException(status_code=404, detail="Progress not found")
     return progress
+
 
 @router.patch("/{module_id}", response_model=UserProgress)
 def update_progress(

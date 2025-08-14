@@ -4,22 +4,29 @@ from uuid import UUID
 from datetime import datetime
 
 class LessonFileBase(BaseModel):
-    lesson_id: UUID
     filename: str
     file_type: str
     file_url: str
 
 class LessonFileCreate(LessonFileBase):
-    pass
+    lesson_id: UUID
 
 class LessonFileUpdate(BaseModel):
     filename: Optional[str] = None
     file_type: Optional[str] = None
     file_url: Optional[str] = None
 
-class LessonFileRead(LessonFileBase):
+class LessonFileInDBBase(LessonFileBase):
     id: UUID
-    uploaded_at: datetime
+    lesson_id: UUID
+    updated_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+
+class LessonFileRead(LessonFileInDBBase):
+    pass
+
+class LessonFileInDB(LessonFileInDBBase):
+    pass
+

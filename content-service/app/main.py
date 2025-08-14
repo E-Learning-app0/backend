@@ -8,6 +8,7 @@ from app.routers import lessons  # import your lessons router
 from app.routers import modules  # import your lessons router
 from app.routers import quiz  # import quiz router
 from app.routers import vimeo  # import vimeo router
+from app.routers import lessonfiles  # import vimeo router
 from app.routers import admin  # import admin router
 from app.routers import users_progress, user_lesson_progress
 from app.services.quiz_background_service import quiz_background_service
@@ -60,6 +61,7 @@ app.include_router(lessons.router)
 app.include_router(modules.router)
 app.include_router(quiz.router)
 app.include_router(vimeo.router)
+app.include_router(lessonfiles.router)
 app.include_router(admin.router)
 app.include_router(users_progress.router)
 app.include_router(user_lesson_progress.router)

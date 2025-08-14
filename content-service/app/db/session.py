@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     VIMEO_CLIENT_ID: Optional[str] = ""
     VIMEO_CLIENT_SECRET: Optional[str] = ""
     VIMEO_ACCESS_TOKEN: Optional[str] = ""
+    SUPABASE_URL: Optional[str] = ""
+    SUPABASE_KEY: Optional[str] = ""
+    ENVIRONMENT: Optional[str] = ""
     
     class Config:
         env_file = ".env"

@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 
-from app.models.lessonfile import LessonFile
+from app.models.lesson_file import LessonFile
 from app.schemas.lessonfile import LessonFileCreate, LessonFileUpdate
 
 async def get_lessonfile(db: AsyncSession, lessonfile_id: UUID) -> LessonFile | None:
