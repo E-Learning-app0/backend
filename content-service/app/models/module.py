@@ -26,3 +26,4 @@ class Module(Base):
     
     user_progresses = relationship("UserProgress", back_populates="module",cascade="all, delete-orphan")
     module_teachers = relationship("ModuleTeacher", back_populates="module")
+    exams = relationship("Exam", back_populates="module", cascade="all, delete-orphan")

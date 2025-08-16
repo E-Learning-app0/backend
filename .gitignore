@@ -46,3 +46,5 @@ start-nginx*.sh
 start-services-only.bat
 stop-nginx*.bat
 *.sh
+model/*
+model/
