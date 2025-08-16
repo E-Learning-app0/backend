@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.session import Base
-
+from sqlalchemy.dialects.postgresql import JSONB
 
 class Lesson(Base):
     __tablename__ = "lesson"
@@ -20,6 +20,7 @@ class Lesson(Base):
     createdat = Column(DateTime, default=datetime.utcnow)
     completed = Column(Boolean, default=False, nullable=False)
     quiz_id = Column(String, nullable=True)
+    quiz_json = Column(JSONB, nullable=True)
     vimeo_id = Column(String, nullable=True)  # Store Vimeo video ID separately
     video_type = Column(String, nullable=True)  # Type: 'vimeo', 'youtube', 'local', etc.
     

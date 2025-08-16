@@ -19,8 +19,13 @@ from app.crud.lessonfile import (
 )
 from dotenv import load_dotenv
 load_dotenv()
+import json
+import redis
 
+r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+AGENT_SERVICE_URL = "http://localhost:8004" 
 router = APIRouter(prefix="/lessonfiles", tags=["LessonFiles"])
+
 
 
 # Supabase configuration
@@ -251,6 +256,12 @@ async def delete_lesson_pdf(
 from fastapi import Form
 from sqlalchemy import update
 from app.models import Lesson
+import httpx
+
+from app.db.session import get_db
+
+
+ # change to your agent service URL
 
 
 @router.post("/upload-and-create")
@@ -263,17 +274,10 @@ async def upload_and_create_lesson_pdf(
     if not lesson_id:
         raise ValueError("lesson_id is missing or empty")
     try:
-        # Convert string lesson_id to UUID
         lesson_id = UUID(lesson_id)
     except ValueError:
         raise HTTPException(400, "Invalid UUID format")
-    
-    """
-    Upload PDF to Supabase and:
-    - Create lesson file record if none exists for this lesson
-    - Update existing record if one already exists for this lesson
-    """
-    # Validate file type
+
     if not file.content_type or not file.content_type.startswith('application/pdf'):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -281,14 +285,12 @@ async def upload_and_create_lesson_pdf(
         )
 
     try:
-        # Check if a file already exists for this lesson
+        # Check if a file already exists
         existing_files = await get_lessonfiles_by_lesson(db, lesson_id)
         existing_file = existing_files[0] if existing_files else None
 
-        # Upload the new file to Supabase
+        # Upload PDF to Supabase
         pdf_url = await upload_to_supabase(file)
-        
-        # Prepare the file data
         file_data = {
             "lesson_id": lesson_id,
             "filename": title,
@@ -297,65 +299,84 @@ async def upload_and_create_lesson_pdf(
         }
 
         if existing_file:
-            # Update existing record
-            try:
-                # First delete the old file from storage
-                if existing_file.file_url:
-                    await delete_from_supabase(existing_file.file_url)
-                
-                # Update the database record
-                updated_file = await update_lessonfile(
-                    db, 
-                    existing_file.id, 
-                    LessonFileUpdate(**file_data)
-                )
-                # **Update Lesson.pdf column**
-                await db.execute(
-        update(Lesson)
-        .where(Lesson.id == lesson_id)
-        .values(pdf=pdf_url)
-    )
-                await db.commit()
-                return {
-                    "message": "PDF updated successfully",
-                    "lesson_file": updated_file,
-                    "pdf_url": pdf_url,
-                    "action": "updated"
-                }
-            except Exception as update_error:
-                # Clean up the new file if update fails
-                await delete_from_supabase(pdf_url)
-                raise update_error
+            if existing_file.file_url:
+                await delete_from_supabase(existing_file.file_url)
+            lesson_file_obj = await update_lessonfile(db, existing_file.id, LessonFileUpdate(**file_data))
+            action = "updated"
         else:
-            # Create new record
-            try:
-                new_file = await create_lessonfile(db, LessonFileCreate(**file_data))
+            lesson_file_obj = await create_lessonfile(db, LessonFileCreate(**file_data))
+            action = "created"
 
-                # --- Update the lesson table pdf column ---
-                await db.execute(
-            update(Lesson)
-            .where(Lesson.id == lesson_id)
-            .values(pdf=pdf_url)
-        )
-                await db.commit()
-                return {
-                    "message": "PDF uploaded and lesson file created successfully",
-                    "lesson_file": new_file,
-                    "pdf_url": pdf_url,
-                    "action": "created"
-                }
-            except Exception as create_error:
-                # Clean up the new file if creation fails
-                await delete_from_supabase(pdf_url)
-                raise create_error
+        # Update Lesson row pdf column
+        await db.execute(update(Lesson).where(Lesson.id == lesson_id).values(pdf=pdf_url))
+        await db.commit()
+
+        # ---------------- Trigger Quiz Generation ----------------
+        quiz_json = None
+        try:
+            file_content = await file.read()  # read file once
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+        f"{AGENT_SERVICE_URL}/upload-quiz",
+        files={"pdf": (file.filename, file_content, file.content_type)},
+        timeout=60.0
+    )
+
+                if response.status_code != 200:
+                    content = await response.text()
+                    print(f"Agent failed: {response.status_code} - {content}")
+                    raise Exception("Agent failed to process PDF")
+
+    # ✅ Async JSON parsing
+                print("----------------")
+                print(response)
+                print("----------------")
+                response_bytes = await response.aread()  # async read
+                
+                print("----------------")
+                print(response_bytes)
+                print("----------------")
+                response_data = json.loads(response_bytes)
+                
+
+                print("----------------")
+                print(response_data)
+                print("----------------")
+                quiz_id = response_data.get("quizId")
+                if quiz_id:
+                    # Fetch quiz JSON from Redis
+                    print("-----------------------------------")
+                    print("------quiz id",quiz_id)
+                    quiz_data = r.get(quiz_id)
+                    print("-----------------------------------")
+                    if quiz_data:
+                        quiz_json = json.loads(quiz_data)
+                        # Save quiz JSON in Lesson table
+                        await db.execute(
+                            update(Lesson).where(Lesson.id == lesson_id).values(quiz_json=quiz_json)
+                        )
+                        await db.commit()
+        except Exception as quiz_error:
+            print(f"⚠️ Quiz generation failed: {quiz_error}")
+
+        return {
+            "message": f"PDF {action} successfully",
+            "lesson_file": lesson_file_obj,
+            "pdf_url": pdf_url,
+            "quiz": quiz_json,
+            "action": action
+        }
 
     except HTTPException:
         raise
     except Exception as e:
+        # Clean up newly uploaded PDF on error
+        await delete_from_supabase(pdf_url)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process lesson file: {str(e)}"
         )
+
 
 # Health check endpoint
 @router.get("/health")

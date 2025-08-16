@@ -2,7 +2,7 @@ from pydantic import BaseModel,ConfigDict
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
-
+from pydantic.types import Json
 
 class LessonBase(BaseModel):
     moduleid: UUID
@@ -81,6 +81,7 @@ class LessonReadSimple(BaseModel):
     pdf: Optional[str]
     completed: bool
     quiz_id: Optional[str] = None
+    quiz_json: Optional[dict] = None
     orderindex: Optional[int] = None
     vimeo_id: Optional[str] = None
     video_type: Optional[str] = None
