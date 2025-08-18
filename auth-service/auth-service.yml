@@ -1,0 +1,9 @@
+containers:
+  - name: auth-service
+    image: elearningacr.azurecr.io/auth-service:latest
+    env:
+      - name: DATABASE_URL
+        value: "postgresql+asyncpg://elearning_admin:!passadmin1@elearningpg.postgres.database.azure.com:5432/auth_db"
+    resources:
+      cpu: 0.5
+      memory: 1Gi

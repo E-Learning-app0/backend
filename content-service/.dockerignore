@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+README.md
+VIMEO_SETUP.md
+QUIZ_SERVICE_README.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Jupyter notebooks
+*.ipynb
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Uploads and large files (but NOT models)
+uploads/
+*.pdf
+*.mp4
+*.avi
+*.mov
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Keep model files - DO NOT exclude these
+# !app/model/
+# !app/model/**

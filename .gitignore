@@ -48,3 +48,8 @@ stop-nginx*.bat
 *.sh
 model/*
 model/
+.env.production
+PRODUCTION_DEPLOYMENT.md
+deploy-production.bat
+docker-compose.prod.yml
+env.production.template
