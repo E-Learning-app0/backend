@@ -21,29 +21,9 @@ from dotenv import load_dotenv
 load_dotenv()
 import json
 import redis
-import os
 
-# Redis configuration using environment variables
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-
-# Create Redis connection with password if provided (for Azure Redis Cache)
-if REDIS_PASSWORD:
-    r = redis.Redis(
-        host=REDIS_HOST, 
-        port=REDIS_PORT, 
-        db=0, 
-        decode_responses=True,
-        password=REDIS_PASSWORD,
-        ssl=True,
-        ssl_check_hostname=False,
-        ssl_cert_reqs=None
-    )
-else:
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
-
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://localhost:8004") 
+r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+AGENT_SERVICE_URL = "http://localhost:8004" 
 router = APIRouter(prefix="/lessonfiles", tags=["LessonFiles"])
 
 
@@ -339,7 +319,7 @@ async def upload_and_create_lesson_pdf(
                 response = await client.post(
         f"{AGENT_SERVICE_URL}/upload-quiz",
         files={"pdf": (file.filename, file_content, file.content_type)},
-        timeout=300.0  # 5 minutes for AI quiz generation
+        timeout=60.0
     )
 
                 if response.status_code != 200:
