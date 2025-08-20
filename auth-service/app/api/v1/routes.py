@@ -392,3 +392,285 @@ async def oauth_login(oauth_data: OAuthToken, db: AsyncSession = Depends(get_db)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# =================== ADMIN USER MANAGEMENT ENDPOINTS ===================
+
+@router.get("/admin/users", response_model=Dict[str, Any])
+async def list_users(
+    page: int = 1,
+    per_page: int = 20,
+    role: str = None,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all users with pagination and optional role filtering"""
+    skip = (page - 1) * per_page
+    
+    # Import here to avoid circular imports
+    from app.crud.user import get_users, get_users_count
+    
+    users = await get_users(db, skip=skip, limit=per_page, role_filter=role)
+    total = await get_users_count(db, role_filter=role)
+    
+    users_data = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "nom_utilisateur": user.nom_utilisateur,
+            "email": user.email,
+            "statut_compte": user.statut_compte,
+            "is_verified": user.is_verified,
+            "roles": [{"id": r.id, "nom": r.nom} for r in user.roles] if user.roles else []
+        }
+        users_data.append(user_dict)
+    
+    return {
+        "users": users_data,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page
+    }
+
+@router.get("/admin/users/{user_id}")
+async def get_user_by_admin(
+    user_id: int,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get specific user details"""
+    user = await get_user_by_id(db, str(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": user.id,
+        "nom_utilisateur": user.nom_utilisateur,
+        "email": user.email,
+        "statut_compte": user.statut_compte,
+        "is_verified": user.is_verified,
+        "roles": [{"id": r.id, "nom": r.nom} for r in user.roles] if user.roles else []
+    }
+
+@router.post("/admin/users")
+async def create_user_by_admin(
+    user_data: dict,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new user (admin only)"""
+    from app.crud.user import create_user_by_admin
+    from app.services.auth import hash_password
+    
+    # Check if user exists
+    existing_user = await get_user_by_email(db, user_data["email"])
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    # Hash password
+    hashed_password = hash_password(user_data["mot_de_passe"])
+    
+    # Extract roles
+    role_names = user_data.get("roles", [])
+    
+    # Create user
+    new_user = await create_user_by_admin(
+        db=db,
+        user_data=user_data,
+        hashed_password=hashed_password,
+        role_names=role_names
+    )
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=new_user.id,
+        action="user_created_by_admin",
+        details=f"User created by admin {current_user['email']} with roles: {role_names}"
+    )
+    
+    return {
+        "id": new_user.id,
+        "nom_utilisateur": new_user.nom_utilisateur,
+        "email": new_user.email,
+        "statut_compte": new_user.statut_compte,
+        "roles": [{"id": r.id, "nom": r.nom} for r in new_user.roles] if new_user.roles else []
+    }
+
+@router.put("/admin/users/{user_id}/role")
+async def update_user_role(
+    user_id: int,
+    role_data: dict,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update user roles"""
+    from app.crud.user import update_user_roles
+    
+    role_names = role_data.get("role_names", [])
+    
+    user = await update_user_roles(db, user_id, role_names)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=user.id,
+        action="user_roles_updated",
+        details=f"Roles updated by admin {current_user['email']} to: {role_names}"
+    )
+    
+    return {
+        "id": user.id,
+        "nom_utilisateur": user.nom_utilisateur,
+        "email": user.email,
+        "roles": [{"id": r.id, "nom": r.nom} for r in user.roles] if user.roles else []
+    }
+
+@router.put("/admin/users/{user_id}")
+async def update_user_by_admin(
+    user_id: int,
+    update_data: dict,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update user information"""
+    from app.crud.user import update_user
+    
+    user = await update_user(db, user_id, update_data)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=user.id,
+        action="user_updated_by_admin",
+        details=f"User updated by admin {current_user['email']}"
+    )
+    
+    return {
+        "id": user.id,
+        "nom_utilisateur": user.nom_utilisateur,
+        "email": user.email,
+        "statut_compte": user.statut_compte,
+        "is_verified": user.is_verified,
+        "roles": [{"id": r.id, "nom": r.nom} for r in user.roles] if user.roles else []
+    }
+
+@router.delete("/admin/users/{user_id}")
+async def delete_user_by_admin(
+    user_id: int,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a user"""
+    from app.crud.user import delete_user
+    
+    # Get user info before deletion for logging
+    user = await get_user_by_id(db, str(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prevent admin from deleting themselves
+    if str(user.id) == current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    
+    success = await delete_user(db, user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=int(current_user["user_id"]),  # Log against admin who performed the action
+        action="user_deleted_by_admin",
+        details=f"User {user.email} (ID: {user.id}) deleted by admin {current_user['email']}"
+    )
+    
+    return {"message": "User deleted successfully"}
+
+@router.put("/admin/users/{user_id}/block")
+async def block_user(
+    user_id: int,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Block a user account"""
+    from app.crud.user import update_user_status
+    
+    # Prevent admin from blocking themselves
+    if str(user_id) == current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot block your own account")
+    
+    user = await update_user_status(db, user_id, "blocked")
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=user.id,
+        action="user_blocked",
+        details=f"User blocked by admin {current_user['email']}"
+    )
+    
+    return {"message": "User blocked successfully", "user_id": user.id}
+
+@router.put("/admin/users/{user_id}/unblock")
+async def unblock_user(
+    user_id: int,
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Unblock a user account"""
+    from app.crud.user import update_user_status
+    
+    user = await update_user_status(db, user_id, "actif")
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.commit()
+    
+    # Log action
+    await log_action(
+        db=db,
+        utilisateur_id=user.id,
+        action="user_unblocked",
+        details=f"User unblocked by admin {current_user['email']}"
+    )
+    
+    return {"message": "User unblocked successfully", "user_id": user.id}
+
+# Additional admin endpoints for dashboard stats
+@router.get("/admin/stats/users")
+async def get_user_stats(
+    current_user: Dict[str, Any] = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user statistics for dashboard"""
+    from app.crud.user import get_users_count
+    
+    total_users = await get_users_count(db)
+    students_count = await get_users_count(db, role_filter="student")
+    teachers_count = await get_users_count(db, role_filter="teacher")
+    admins_count = await get_users_count(db, role_filter="admin")
+    
+    return {
+        "total_users": total_users,
+        "students": students_count,
+        "teachers": teachers_count,
+        "admins": admins_count
+    }
