@@ -18,4 +18,14 @@ class UserProgress(Base):
     is_module_completed = Column(Boolean, default=False)
     last_accessed = Column(DateTime)
     completed_at = Column(DateTime)
+    progress_percentage = Column(Integer, default=0)  
+
+    started_at = Column(DateTime, default=datetime.utcnow)
+
     module = relationship("Module", back_populates="user_progresses")
+
+    @property
+    def total_time_spent(self):
+        if self.completed_at:
+            return int((self.completed_at - self.started_at).total_seconds())
+        return 0
