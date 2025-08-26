@@ -22,6 +22,8 @@ class ExamUpdate(BaseModel):
 class ExamResponse(ExamBase):
     id: UUID
     score: Optional[float] = None
+    status: str
+    content: Optional[dict] = None
     correct_answers: Optional[int] = None
     total_questions: Optional[int] = None
     time_spent: Optional[int] = None
@@ -41,3 +43,9 @@ class ExamCreatedResponse(BaseModel):
     attempt_number: int
     class Config:
         from_attributes = True
+class ExamResultUpdate(BaseModel):
+    score: float
+    correct_answers: int
+    total_questions: int
+    time_spent: int
+    status: Optional[str] = "passed"

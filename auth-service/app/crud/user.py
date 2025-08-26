@@ -3,6 +3,7 @@ from typing import Optional, List
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.utilisateur import Utilisateur
+from app.models.role import Role
 from app.schemas.user import UserCreate
 from sqlalchemy.orm import selectinload
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[Utilisateur]:
@@ -17,6 +18,10 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[Utilisateu
             print(f"DEBUG CRUD - Role: {role.id} - {role.nom}")
     
     return user
+
+async def get_role_by_name(db: AsyncSession, role_name: str) -> Role | None:
+    result = await db.execute(select(Role).filter(Role.nom == role_name))
+    return result.scalars().first()
 
 async def get_user_by_id(db: AsyncSession, user_id: str) -> Optional[Utilisateur]:
     user_id_int = int(user_id)
@@ -125,14 +130,24 @@ async def create_user_by_admin(db: AsyncSession, user_data: dict, hashed_passwor
     return user
 
 async def create_user(db: AsyncSession, user_in: UserCreate, hashed_password: str) -> Utilisateur:
+    # First get the default role
+    default_role = await get_role_by_name(db, "user")
+    
+    if not default_role:
+        # Handle case where default role doesn't exist
+        raise ValueError("Default role 'user' not found")
+    
     user = Utilisateur(
         nom_utilisateur = user_in.nom_utilisateur,
         email=user_in.email,
         mot_de_passe=hashed_password,
-        statut_compte="ACTIF",  # or False, depending on your logic
+        statut_compte="ACTIF",
+        roles=[default_role]  # or False, depending on your logic
     )
     db.add(user)
-    await db.flush()  # flush so that SQLAlchemy assigns ID, if needed
+    await db.commit()
+    await db.refresh(user)
+   
     return user
 
 

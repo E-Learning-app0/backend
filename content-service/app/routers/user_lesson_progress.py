@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List
 from app.db.session import get_db
 from app.schemas.user_lesson_progress import UserLessonProgressCreate, UserLessonProgressUpdate, UserLessonProgressRead
-from app.crud.user_lesson_progress import create_user_lesson_progress, get_user_lesson_progress, update_user_lesson_progress,get_user_progress_by_user,create_user_lesson_progress,calculate_module_progress
+from app.crud.user_lesson_progress import create_user_lesson_progress, get_user_lesson_progress, update_user_lesson_progress,get_user_progress_by_user,create_user_lesson_progress,calculate_module_progress,create_user_lesson_progress_v1
 from app.api.deps import get_current_user
 from app.dependencies.roles import require_any_role
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/user-lesson-progress", tags=["UserLessonProgress"])
 async def create_progress(
     data: UserLessonProgressCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(require_any_role("admin", "teacher", "student")),
+    user=Depends(require_any_role("admin", "teacher", "user")),
     current_user: dict = Depends(get_current_user)
 ):
     existing = await get_user_lesson_progress(db, current_user.id, data.lesson_id)
@@ -37,7 +37,7 @@ async def create_progress(
 async def read_progress(
     lesson_id: UUID,
     db: AsyncSession = Depends(get_db),
-    user=Depends(require_any_role("admin", "teacher", "student")),
+    user=Depends(require_any_role("admin", "teacher", "user")),
     current_user: dict = Depends(get_current_user)
 ):
     progress = await get_user_lesson_progress(db, current_user.id, lesson_id)
@@ -51,12 +51,12 @@ async def update_progress(
     lesson_id: UUID,
     data: UserLessonProgressUpdate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(require_any_role("admin", "teacher", "student")),
+    user=Depends(require_any_role("admin", "teacher", "user")),
     current_user: dict = Depends(get_current_user)
 ):
     progress = await update_user_lesson_progress(db, current_user.id, lesson_id, data)
     if not progress:
-        raise HTTPException(status_code=404, detail="Progress not found")
+        progress = await create_user_lesson_progress_v1(db, current_user.id, lesson_id, data)
     return progress
 
 
@@ -64,7 +64,7 @@ async def update_progress(
 @router.get("/all", response_model=List[UserLessonProgressRead])
 async def get_user_progress(
     db: AsyncSession = Depends(get_db),
-    user=Depends(require_any_role("admin", "teacher", "student")),
+    user=Depends(require_any_role("admin", "teacher", "user")),
     current_user: dict = Depends(get_current_user)  # Ensures user is authenticated
 ):
     """

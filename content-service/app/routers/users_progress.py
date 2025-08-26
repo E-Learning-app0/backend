@@ -445,3 +445,73 @@ async def unlock_next_semester(
         current_semester=current_semester
     )
     return result
+
+
+# GET USER PROGRESS BY USER ID - FIXED FOR FRONTEND
+@router.get("/", response_model=List[UserProgressWithModule])
+async def get_user_progress_list(
+    user_id: Optional[str] = Query(None, description="User ID as string"),
+    module_id: Optional[UUID] = Query(None),
+    semester: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get user progress with various filters:
+    - ?user_id={userId} - Get progress for specific user (frontend format)
+    - ?module_id={moduleId} - Get progress for specific module  
+    - ?semester={semester} - Get progress for specific semester
+    - No params - Get all progress for current user
+    """
+    
+    # Handle user_id parameter (convert from string to int if provided)
+    target_user_id = None
+    if user_id:
+        try:
+            target_user_id = int(user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="user_id must be a valid integer"
+            )
+    else:
+        # Use current user if no user_id provided
+        target_user_id = current_user.id
+    
+    if module_id:
+        # Get progress for specific module
+        progress = await get_user_progress_with_module(db, target_user_id, module_id)
+        return [progress] if progress else []
+    
+    elif semester:
+        # Get progress for specific semester
+        progress_list = await get_user_progress_by_semester(db, target_user_id, semester)
+        return progress_list
+    
+    else:
+        # Get all progress for user
+        progress_list = await get_all_user_progress(db, target_user_id)
+        return progress_list
+
+
+# GET USER PROGRESS BY MODULE ID - SPECIFIC ENDPOINT FOR FRONTEND
+@router.get("/module/{module_id}", response_model=List[UserProgressWithModule])
+async def get_progress_by_module(
+    module_id: UUID,
+    user_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get progress for specific module (alternative endpoint)"""
+    target_user_id = current_user.id
+    if user_id:
+        try:
+            target_user_id = int(user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="user_id must be a valid integer"
+            )
+    
+    progress = await get_user_progress_with_module(db, target_user_id, module_id)
+    return [progress] if progress else []

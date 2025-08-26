@@ -57,11 +57,12 @@ async def get_user_progress_by_user(
     )
     return result.scalars().all()
 
-async def create_user_lesson_progress(db: AsyncSession, user_id: UUID, lesson_id: UUID, completed: bool):
+async def create_user_lesson_progress(db: AsyncSession, user_id: int, lesson_id: UUID, completed: bool):
     new_progress = UserLessonProgress(
         external_user_id=user_id,
         lesson_id=lesson_id,
-        completed=completed
+        completed=completed,
+        
     )
     db.add(new_progress)
     await db.commit()
@@ -69,6 +70,19 @@ async def create_user_lesson_progress(db: AsyncSession, user_id: UUID, lesson_id
     return new_progress
 
 
+async def create_user_lesson_progress_v1(db: AsyncSession, user_id: int, lesson_id: UUID, data: UserLessonProgressUpdate):
+    new_progress = UserLessonProgress(
+        external_user_id=user_id,
+        lesson_id=lesson_id,
+        completed=data.completed,
+        score=data.score,
+        video_watched=True,  # Set video_watched
+        completed_at=datetime.utcnow() if data.completed else None
+    )
+    db.add(new_progress)
+    await db.commit()
+    await db.refresh(new_progress)
+    return new_progress
 
 from app.models.module import Module
 from sqlalchemy import select

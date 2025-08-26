@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
 from app.schemas.user import UserCreate, UserLogin, UserRead, OAuthData
 from app.services.auth import hash_password, verify_password, create_access_token,decode_access_token, create_access_token_for_user
-from app.crud.user import get_user_by_email, create_user, get_or_create_fournisseur,get_user_by_id
+from app.crud.user import get_user_by_email, create_user, get_or_create_fournisseur,get_user_by_id,get_role_by_name
 from db.session import get_db
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -352,12 +352,18 @@ async def oauth_login(oauth_data: OAuthToken, db: AsyncSession = Depends(get_db)
         is_new_user = False
 
         if not user:
+            default_role = await get_role_by_name(db, "user")
+            
+            if not default_role:
+                raise HTTPException(status_code=500, detail="Default role 'user' not found")
+            
             user = Utilisateur(
                 nom_utilisateur=name,
                 email=email,
                 mot_de_passe=None,
+                roles=[default_role],
+                fournisseurs=[fournisseur_google]
             )
-            user.fournisseurs.append(fournisseur_google)
             db.add(user)
             await db.commit()
             await db.refresh(user)
@@ -367,7 +373,12 @@ async def oauth_login(oauth_data: OAuthToken, db: AsyncSession = Depends(get_db)
                 user.fournisseurs.append(fournisseur_google)
             if not user.is_verified:
                 user.is_verified = True
-                db.add(user)  
+                 
+            if not user.roles:
+                default_role = await get_role_by_name(db, "user")
+                if default_role:
+                    user.roles.append(default_role)
+            db.add(user)
             await db.commit()
             await db.refresh(user)
 

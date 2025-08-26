@@ -13,10 +13,11 @@ from app.crud.exam import (
     get_module_exams_for_user,
     get_user_passed_exams_count,
     get_exam_from_redis,
-    get_user_module_attempts
+    get_user_module_attempts,
+    update_user_exam_results
 )
 from app.db.session import get_db
-from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse,ExamCreatedResponse
+from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse,ExamCreatedResponse,ExamResultUpdate
 import logging
 logging.basicConfig(
     level=logging.INFO,
@@ -97,20 +98,38 @@ async def get_user_all_exams(user_id: int, db: AsyncSession = Depends(get_db)):
 
 
 
-@router.get("/user/{user_id}/module/{module_id}", response_model=List[ExamResponse])
+@router.get("/module/{module_id}", response_model=List[ExamResponse])
 async def get_user_module_exams(
-    user_id: int, 
     module_id: UUID, 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get all exams for a specific user and module
-    """
-    exams = await get_module_exams_for_user(db, user_id, module_id)
-    return exams
+
+    exams = await get_module_exams_for_user(db, current_user.id, module_id)
+
+    return [
+        ExamResponse(
+            id=e.id,
+            user_id=e.external_user_id,   # map DB field to Pydantic field
+            status=e.status,
+            content=e.content,
+            module_id=e.module_id,
+            score=e.score,
+            correct_answers=e.correct_answers,
+            total_questions=e.total_questions,
+            time_spent=e.time_spent,
+            attempt_number=e.attempt_number,
+            is_retake=e.is_retake,
+            created_at=e.created_at,
+            started_at=e.started_at,
+            completed_at=e.completed_at
+        )
+        for e in exams
+    ]
 
 @router.get("/{exam_id}", response_model=ExamResponse)
 async def get_exam_by_id_endpoint(exam_id: UUID, db: AsyncSession = Depends(get_db)):
+
     """
     Get specific exam by ID
     """
@@ -118,3 +137,44 @@ async def get_exam_by_id_endpoint(exam_id: UUID, db: AsyncSession = Depends(get_
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
     return exam
+
+
+
+@router.put("/update/{exam_id}", response_model=ExamResponse)
+async def update_exam_results(
+    exam_id: UUID,
+    exam_result: ExamResultUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update the score and details of a user's exam after completion
+    """
+    updated_exam = await update_user_exam_results(
+        db,
+        exam_id,
+        score=exam_result.score,
+        correct_answers=exam_result.correct_answers,
+        total_questions=exam_result.total_questions,
+        time_spent=exam_result.time_spent,
+        status=exam_result.status
+    )
+
+    if not updated_exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    return ExamResponse(
+        id=updated_exam.id,
+        user_id=updated_exam.external_user_id,
+        module_id=updated_exam.module_id,
+        content=updated_exam.content,
+        score=updated_exam.score,
+        correct_answers=updated_exam.correct_answers,
+        total_questions=updated_exam.total_questions,
+        time_spent=updated_exam.time_spent,
+        attempt_number=updated_exam.attempt_number,
+        is_retake=updated_exam.is_retake,
+        created_at=updated_exam.created_at,
+        started_at=updated_exam.started_at,
+        completed_at=updated_exam.completed_at
+    )

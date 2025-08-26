@@ -2,12 +2,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_
+from sqlalchemy import update
 from app.models.user_exams import UserExam
 from uuid import UUID
 from sqlalchemy import and_, func
 import os
 import redis
 import uuid, json
+from datetime import datetime
+from uuid import UUID
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -202,3 +205,36 @@ async def get_module_exams_for_user(db: AsyncSession, user_id: int, module_id: U
         )
     )
     return result.scalars().all()
+
+
+
+async def update_user_exam_results(
+    db: AsyncSession,
+    exam_id: UUID,
+    score: float,
+    correct_answers: int,
+    total_questions: int,
+    time_spent: int,
+    status: str = None
+):
+    """
+    Update the results of a completed exam.
+    """
+    stmt = (
+    update(UserExam)
+    .where(UserExam.id == exam_id)
+    .values(
+        score=score,
+        correct_answers=correct_answers,
+        total_questions=total_questions,
+        time_spent=time_spent,
+        status=status if status else 'passed',
+        completed_at=datetime.utcnow()
+        )
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+    # Fetch ORM object
+    updated_exam = await db.get(UserExam, exam_id)
+    return updated_exam
