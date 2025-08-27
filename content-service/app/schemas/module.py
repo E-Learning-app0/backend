@@ -54,6 +54,7 @@ class ModuleReadCustom(BaseModel):
     about_en: Optional[str] = None
     about_fr: Optional[str] = None
     semester: Optional[str] = None
+    summary_pdf: Optional[str] = None
     lessons: List[LessonReadSimple] = []
     model_config = ConfigDict(from_attributes=True)
 

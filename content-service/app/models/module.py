@@ -21,7 +21,7 @@ class Module(Base):
     about_en = Column(Text, nullable=True)               # texte about en anglais
     about_fr = Column(Text, nullable=True)               # texte about en français
     order = Column(Integer, nullable=False)
-
+    summary_pdf = Column(String(255), nullable=True)
     lessons = relationship("Lesson", back_populates="module")
     
     user_progresses = relationship("UserProgress", back_populates="module",cascade="all, delete-orphan")
