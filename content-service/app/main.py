@@ -11,6 +11,7 @@ from app.routers import resolution  # import quiz router
 from app.routers import vimeo  # import vimeo router
 from app.routers import admin  # import admin router
 from app.routers import exams  # import admin router
+from app.routers import alternative_exams  # import admin router
 from app.routers import users_progress, user_lesson_progress
 from app.services.quiz_background_service import quiz_background_service
 
@@ -42,4 +43,5 @@ app.include_router(admin.router)
 app.include_router(exams.router)
 app.include_router(users_progress.router)
 app.include_router(user_lesson_progress.router)
+app.include_router(alternative_exams.router)
 app.include_router(resolution.router)
