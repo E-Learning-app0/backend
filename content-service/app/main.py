@@ -9,6 +9,7 @@ from app.routers import modules  # import your lessons router
 from app.routers import quiz  # import quiz router
 from app.routers import resolution  # import quiz router
 from app.routers import vimeo  # import vimeo router
+#from app.routers import apivideo  # import vimeo router
 from app.routers import admin  # import admin router
 from app.routers import exams  # import admin router
 from app.routers import alternative_exams  # import admin router
@@ -39,6 +40,7 @@ app.include_router(lessons.router)
 app.include_router(modules.router)
 app.include_router(quiz.router)
 app.include_router(vimeo.router)
+#app.include_router(apivideo.router)
 app.include_router(admin.router)
 app.include_router(exams.router)
 app.include_router(users_progress.router)

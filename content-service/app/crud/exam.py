@@ -11,6 +11,7 @@ import redis
 import uuid, json
 from datetime import datetime
 from uuid import UUID
+from typing import Optional, List, Dict
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -215,11 +216,13 @@ async def update_user_exam_results(
     correct_answers: int,
     total_questions: int,
     time_spent: int,
-    status: str = None
+    status: str = None,
+    user_answer: Optional[List[Dict]] = None 
 ):
     """
     Update the results of a completed exam.
     """
+    
     stmt = (
     update(UserExam)
     .where(UserExam.id == exam_id)
@@ -229,7 +232,8 @@ async def update_user_exam_results(
         total_questions=total_questions,
         time_spent=time_spent,
         status=status if status else 'passed',
-        completed_at=datetime.utcnow()
+        completed_at=datetime.utcnow(),
+        user_answer=user_answer
         )
     )
     await db.execute(stmt)

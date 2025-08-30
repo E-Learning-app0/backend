@@ -27,6 +27,7 @@ class UserExam(Base):
     attempt_number = Column(Integer, default=1)  # 1 = normal, 2 = retake, etc.
     is_retake = Column(Boolean, default=False)
     
+    user_answer = Column(JSONB, nullable=False)
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)

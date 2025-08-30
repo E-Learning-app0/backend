@@ -122,7 +122,8 @@ async def get_user_module_exams(
             is_retake=e.is_retake,
             created_at=e.created_at,
             started_at=e.started_at,
-            completed_at=e.completed_at
+            completed_at=e.completed_at,
+            user_answer=e.user_answer,
         )
         for e in exams
     ]
@@ -157,7 +158,8 @@ async def update_exam_results(
         correct_answers=exam_result.correct_answers,
         total_questions=exam_result.total_questions,
         time_spent=exam_result.time_spent,
-        status=exam_result.status
+        status=exam_result.status,
+        user_answer=exam_result.user_answer
     )
 
     if not updated_exam:

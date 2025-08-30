@@ -32,9 +32,12 @@ class ExamResponse(ExamBase):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    
+    user_answer: Optional[List[Dict]] = None 
+
     class Config:
         from_attributes = True
+
+
 class ExamCreatedResponse(BaseModel):
     message: str
     exam_id: UUID
@@ -43,9 +46,12 @@ class ExamCreatedResponse(BaseModel):
     attempt_number: int
     class Config:
         from_attributes = True
+
+        
 class ExamResultUpdate(BaseModel):
     score: float
     correct_answers: int
     total_questions: int
     time_spent: int
     status: Optional[str] = "passed"
+    user_answer: Optional[List[Dict]] = None 
