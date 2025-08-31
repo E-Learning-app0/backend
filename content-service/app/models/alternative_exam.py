@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, DateTime,Text
+from sqlalchemy import Column, ForeignKey, DateTime,Text,Integer
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -10,6 +10,7 @@ class AlternativeExam(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, index=True)
     module_id = Column(UUID(as_uuid=True), ForeignKey("module.id"), nullable=False, unique=True)
+    version = Column(Integer, nullable=False, default=1)
     content = Column(JSONB, nullable=False) 
     created_at = Column(DateTime, default=datetime.utcnow)
     

@@ -13,9 +13,9 @@ from datetime import datetime
 from uuid import UUID
 
 
-async def get_alternative_exam(db: AsyncSession, module_id: UUID):
+async def get_alternative_exam(db: AsyncSession, module_id: UUID, version: int = 1):
     result = await db.execute(
-        select(AlternativeExam).where(AlternativeExam.module_id == module_id)
+        select(AlternativeExam).where(AlternativeExam.module_id == module_id).where(AlternativeExam.version == version)
     )
     return result.scalars().first()
 

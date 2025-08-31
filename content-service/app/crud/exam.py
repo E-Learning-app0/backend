@@ -104,6 +104,8 @@ async def get_module_exams_from_redis(module_id: UUID):
             exams.append(json.loads(exam_data))
     
     return exams
+
+
 async def get_user_module_attempts(db: AsyncSession, user_id: int, module_id: UUID) -> int:
     """Count total exam attempts for this user and module"""
     result = await db.execute(
@@ -222,6 +224,13 @@ async def update_user_exam_results(
     """
     Update the results of a completed exam.
     """
+    exam = await db.get(UserExam, exam_id)
+    if not exam:
+        return None
+
+    # Increment attempt number if re-attempt
+    attempt_number = exam.attempt_number + 1 if exam.attempt_number else 1
+    is_retake = attempt_number > 1
     
     stmt = (
     update(UserExam)
@@ -233,7 +242,9 @@ async def update_user_exam_results(
         time_spent=time_spent,
         status=status if status else 'passed',
         completed_at=datetime.utcnow(),
-        user_answer=user_answer
+        user_answer=user_answer,
+        attempt_number=attempt_number,
+        is_retake=is_retake
         )
     )
     await db.execute(stmt)
