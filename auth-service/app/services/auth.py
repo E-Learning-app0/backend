@@ -19,7 +19,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "token_type": "access"})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a long-lived refresh token"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
+    to_encode.update({"exp": expire, "token_type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -27,13 +35,42 @@ def create_access_token_for_user(user_id: str, email: str, roles: List[str], exp
     """Create JWT token with user ID, email, and roles"""
     to_encode = {
         "sub": user_id,
+        "user_id": user_id,  # For backward compatibility
         "email": email,
-        "roles": roles
+        "roles": roles,
+        "token_format": "new"
     }
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "token_type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def create_refresh_token_for_user(user_id: str, email: str, roles: List[str], expires_delta: Optional[timedelta] = None) -> str:
+    """Create long-lived refresh token with user information"""
+    to_encode = {
+        "sub": user_id,
+        "user_id": user_id,
+        "email": email,
+        "roles": roles,
+        "token_format": "new"
+    }
+    expire = datetime.utcnow() + (expires_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
+    to_encode.update({"exp": expire, "token_type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+def create_token_pair(user_id: str, email: str, roles: List[str]) -> dict:
+    """Create both access and refresh tokens for a user"""
+    access_token = create_access_token_for_user(user_id, email, roles)
+    refresh_token = create_refresh_token_for_user(user_id, email, roles)
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # seconds
+        "refresh_expires_in": settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # seconds
+    }
 
 def decode_access_token(token: str) -> Optional[dict]:
     try:
@@ -41,6 +78,25 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except jwt.PyJWTError:
         return None
+
+def decode_refresh_token(token: str) -> Optional[dict]:
+    """Decode and validate refresh token"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Verify it's actually a refresh token
+        if payload.get("token_type") != "refresh":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+def verify_token_type(token: str, expected_type: str) -> bool:
+    """Verify that the token is of the expected type (access or refresh)"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload.get("token_type") == expected_type
+    except jwt.PyJWTError:
+        return False
 
 def get_user_info_from_token(token: str) -> Optional[dict]:
     """Extract user information from JWT token"""

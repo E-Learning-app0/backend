@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
-from app.schemas.user import UserCreate, UserLogin, UserRead, OAuthData
-from app.services.auth import hash_password, verify_password, create_access_token,decode_access_token, create_access_token_for_user
+from app.schemas.user import UserCreate, UserLogin, UserRead, OAuthData, RefreshTokenRequest, TokenResponse
+from app.services.auth import hash_password, verify_password, create_access_token,decode_access_token, create_access_token_for_user, create_token_pair, decode_refresh_token
 from app.crud.user import get_user_by_email, create_user, get_or_create_fournisseur,get_user_by_id,get_role_by_name
 from db.session import get_db
 from google.oauth2 import id_token
@@ -18,10 +18,76 @@ import uuid
 from app.services.email import send_verification_email
 from app.dependencies.auth import get_current_user, require_role, require_any_role
 from typing import Dict, Any
+import time
+import datetime
 
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# =================== HEALTH CHECK ENDPOINTS ===================
+
+@router.get("/health")
+async def health_check():
+    """
+    Basic health check endpoint to prevent cold starts.
+    Can be called without authentication every 2-3 minutes.
+    """
+    return {
+        "status": "healthy",
+        "service": "auth-service",
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "uptime": time.time()
+    }
+
+@router.get("/health/detailed")
+async def detailed_health_check(db: AsyncSession = Depends(get_db)):
+    """
+    Detailed health check that includes database connectivity.
+    Use this for thorough monitoring.
+    """
+    start_time = time.time()
+    
+    # Test database connection
+    db_status = "healthy"
+    db_response_time = 0
+    try:
+        db_start = time.time()
+        await db.execute("SELECT 1")
+        db_response_time = round((time.time() - db_start) * 1000, 2)  # ms
+    except Exception as e:
+        db_status = "unhealthy"
+        db_response_time = -1
+    
+    total_response_time = round((time.time() - start_time) * 1000, 2)
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "service": "auth-service",
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "checks": {
+            "database": {
+                "status": db_status,
+                "response_time_ms": db_response_time
+            }
+        },
+        "response_time_ms": total_response_time
+    }
+
+@router.get("/health/user")
+async def user_health_check(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Health check for authenticated users.
+    Validates token and keeps user session warm.
+    """
+    return {
+        "status": "healthy",
+        "service": "auth-service",
+        "user_id": current_user["user_id"],
+        "email": current_user["email"],
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "message": "User session is active"
+    }
 
 @router.get("/users/me")
 async def read_users_me(current_user: Dict[str, Any] = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -49,6 +115,56 @@ async def get_token_info(current_user: Dict[str, Any] = Depends(get_current_user
         "token_expires": current_user["exp"],
         "token_format": current_user.get("token_format", "unknown")
     }
+
+@router.post("/refresh-token", response_model=TokenResponse)
+async def refresh_access_token(refresh_request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Generate new access and refresh tokens using a valid refresh token.
+    This prevents users from being logged out every 30 minutes.
+    """
+    try:
+        # Decode the refresh token
+        payload = decode_refresh_token(refresh_request.refresh_token)
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        # Verify user still exists
+        user = await get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        
+        # Get fresh role information
+        role_names = [role.nom for role in user.roles] if user.roles else []
+        
+        # Create new token pair
+        token_pair = create_token_pair(
+            user_id=str(user.id),
+            email=user.email,
+            roles=role_names
+        )
+        
+        await log_action(
+            db=db,
+            utilisateur_id=user.id,
+            action="token_refresh",
+            details="New tokens generated via refresh token"
+        )
+        
+        return token_pair
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
 
 @router.post("/refresh")
 async def refresh_token(current_user: Dict[str, Any] = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -277,7 +393,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
     return new_user
 
-@router.post("/login")
+@router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(db, credentials.email)
 
@@ -291,41 +407,17 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         details="Connexion avec email et mot de passe"
     )
     
-    # Extract user roles - try relationship first, then manual query
+    # Extract user roles
     role_names = [role.nom for role in user.roles] if user.roles else []
     
-    # If no roles loaded via relationship, try manual query
-    if not role_names:
-        print("DEBUG - No roles via relationship, trying manual query...")
-        from sqlalchemy import text
-        role_query = text("""
-            SELECT r.nom 
-            FROM role r 
-            JOIN utilisateur_role ur ON r.id = ur.role_id 
-            WHERE ur.utilisateur_id = :user_id
-        """)
-        role_result = await db.execute(role_query, {"user_id": user.id})
-        role_names = [row.nom for row in role_result.fetchall()]
-        print(f"DEBUG - Manual query found {len(role_names)} roles: {role_names}")
-    
-    # DEBUG: Print what we're creating
-    print(f"DEBUG - Creating token for user {user.id}")
-    print(f"DEBUG - Email: {user.email}")
-    print(f"DEBUG - Roles: {role_names}")
-    print(f"DEBUG - Roles count: {len(role_names)}")
-    
-    # Create token with email and roles
-    token = create_access_token_for_user(
+    # Create token pair with both access and refresh tokens
+    token_pair = create_token_pair(
         user_id=str(user.id),
         email=user.email,
         roles=role_names
     )
     
-    # DEBUG: Decode the token to see what was actually created
-    decoded = decode_access_token(token)
-    print(f"DEBUG - Token payload: {decoded}")
-    
-    return {"access_token": token, "token_type": "bearer"}
+    return token_pair
 
 
 class OAuthToken(BaseModel):
@@ -335,7 +427,7 @@ class OAuthToken(BaseModel):
 
 from app.services.audit import log_action  # à adapter selon ton arborescence
 
-@router.post("/oauth-login")
+@router.post("/oauth-login", response_model=TokenResponse)
 async def oauth_login(oauth_data: OAuthToken, db: AsyncSession = Depends(get_db)):
     try:
         # validation et extraction
@@ -393,13 +485,13 @@ async def oauth_login(oauth_data: OAuthToken, db: AsyncSession = Depends(get_db)
         # Extract user roles
         role_names = [role.nom for role in user.roles] if user.roles else []
         
-        # Create token with email and roles
-        token = create_access_token_for_user(
+        # Create token pair with both access and refresh tokens
+        token_pair = create_token_pair(
             user_id=str(user.id),
             email=user.email,
             roles=role_names
         )
-        return {"access_token": token, "token_type": "bearer"}
+        return token_pair
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

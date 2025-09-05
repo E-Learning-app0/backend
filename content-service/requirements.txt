@@ -8,6 +8,7 @@ python-dotenv>=1.0.0
 
 httpx>=0.25.0
 python-vimeo==0.1.0
+api.video>=1.4.7
 PyJWT>=2.8.0
 
 supabase>=0.0.0

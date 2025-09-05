@@ -19,8 +19,17 @@ class LessonBase(BaseModel):
 class LessonCreate(LessonBase):
     pass
 
-class LessonUpdate(LessonBase):
-    pass
+class LessonUpdate(BaseModel):
+    moduleid: Optional[UUID] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    title_fr: Optional[str] = None
+    resourceurl: Optional[str] = None
+    orderindex: Optional[int] = None
+    completed: Optional[bool] = None
+    video: Optional[str] = None
+    vimeo_id: Optional[str] = None
+    video_type: Optional[str] = None
 
 class LessonOrderUpdate(BaseModel):
     orderindex: int

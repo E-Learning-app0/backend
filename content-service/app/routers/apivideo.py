@@ -24,7 +24,7 @@ videos_api = VideosApi(client)
 router = APIRouter(prefix="/apivideo", tags=["Api.video Integration"])
 
 class ApiVideoUploadRequest(BaseModel):
-    name: str
+    title: str
     description: str = ""
     privacy: str = "unlisted"
 
@@ -39,15 +39,19 @@ class LessonCreateWithApiVideo(BaseModel):
 
 @router.post("/create-video")
 async def create_video(request: ApiVideoUploadRequest, user=Depends(require_any_role("admin", "teacher"))):
-    """Create a new video on api.video"""
+    """Create a new video on api.video and return video ID and upload token"""
     try:
         response = videos_api.create_video(body={
-            "title": request.name,
+            "title": request.title,
             "description": request.description,
             "privacy": {"view": request.privacy}
         })
+        
+        # For API.video, we need to return the API key as upload_token 
+        # since the frontend will use it for direct upload
         return {
             "video_id": response.video_id,
+            "upload_token": API_VIDEO_KEY,  # API.video uses API key for uploads
             "upload_url": response.assets.upload_url,
             "player_url": response.assets.player_url
         }

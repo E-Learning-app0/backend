@@ -32,7 +32,14 @@ async def create_lesson(db: AsyncSession, lesson_create: LessonCreate):
     return new_lesson
 
 async def update_lesson(db: AsyncSession, lesson_id: UUID, lesson_update: LessonUpdate):
-    stmt = update(Lesson).where(Lesson.id == lesson_id).values(**lesson_update.dict()).returning(Lesson)
+    # Only update fields that are not None (exclude_unset=True, exclude_none=True)
+    update_data = lesson_update.dict(exclude_unset=True, exclude_none=True)
+    
+    if not update_data:
+        # If no data to update, just return the existing lesson
+        return await get_lesson(db, lesson_id)
+    
+    stmt = update(Lesson).where(Lesson.id == lesson_id).values(**update_data).returning(Lesson)
     result = await db.execute(stmt)
     await db.commit()
     updated = result.fetchone()
